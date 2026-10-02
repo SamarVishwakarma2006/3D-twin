@@ -1,1 +1,5 @@
-export default function Page() { return <main style={{padding:48}}><p>INSIDE / DIGITAL TWIN STUDIO</p><h1>Understand Any Product From the Inside Out.</h1><p>The typed demo dataset and deterministic simulation foundation are ready.</p></main>; }
+'use client';
+import { useState } from 'react';
+import { Intake } from '../components/Intake';
+import { Workspace } from '../components/Workspace';
+export default function Page() { const [open,setOpen]=useState(false);return open?<Workspace onBack={()=>setOpen(false)}/>:<Intake onOpen={()=>setOpen(true)}/>; }
