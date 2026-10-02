@@ -1,19 +1,205 @@
-'use client';
-import { useMemo, useRef, useState } from 'react';
-import { useWorkspace } from '../lib/store';
-import { DependencyGraph } from '../lib/graph';
-import { dependencyTypes } from '../lib/product';
+"use client";
+import { useMemo, useRef, useState } from "react";
+import { useWorkspace } from "../lib/store";
+import { DependencyGraph } from "../lib/graph";
+import { dependencyTypes } from "../lib/product";
 export function DependencyView() {
-  const s=useWorkspace(); const [zoom,setZoom]=useState(1); const [pan,setPan]=useState({x:0,y:0}); const drag=useRef<{x:number;y:number;px:number;py:number}|null>(null);
-  const graph=useMemo(()=>new DependencyGraph(s.product),[s.product]);
-  const related=new Set(s.selectedComponentId?[s.selectedComponentId,...graph.getAncestors(s.selectedComponentId),...graph.getDescendants(s.selectedComponentId)]:s.product.components.map(c=>c.id));
-  const positions=Object.fromEntries(s.product.components.map((c,i)=>[c.id,{x:105+(i%3)*215,y:55+Math.floor(i/3)*96}]));
-  return <div className="graph-panel"><div className="graph-toolbar"><span>PROVIDER → CONSUMER</span><button aria-label="Zoom graph out" onClick={()=>setZoom(z=>Math.max(.5,z-.2))}>−</button><button aria-label="Zoom graph in" onClick={()=>setZoom(z=>Math.min(2.5,z+.2))}>+</button><button onClick={()=>{setPan({x:0,y:0});setZoom(1);}}>Fit graph</button><button disabled={!s.selectedComponentId} onClick={()=>{const p=positions[s.selectedComponentId!];setPan({x:320-p.x,y:260-p.y});setZoom(1);}}>Focus selected</button></div>
-    <div className="filters">{dependencyTypes.filter(t=>s.product.dependencies.some(e=>e.dependencyType===t)).map(type=><button key={type} aria-pressed={s.dependencyFilters.includes(type)} onClick={()=>useWorkspace.setState({dependencyFilters:s.dependencyFilters.includes(type)?s.dependencyFilters.filter(t=>t!==type):[...s.dependencyFilters,type]})}>{type}</button>)}</div>
-    <svg viewBox="0 0 650 550" role="group" aria-label="Component dependency graph" onPointerDown={e=>{if((e.target as Element).closest('[data-node]'))return;e.currentTarget.setPointerCapture(e.pointerId);drag.current={x:e.clientX,y:e.clientY,px:pan.x,py:pan.y};}} onPointerMove={e=>{if(drag.current){const scale=650/e.currentTarget.getBoundingClientRect().width;setPan({x:drag.current.px+(e.clientX-drag.current.x)*scale,y:drag.current.py+(e.clientY-drag.current.y)*scale});}}} onPointerUp={()=>{drag.current=null;}} onPointerCancel={()=>{drag.current=null;}}>
-    <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/></marker></defs>
-    <g transform={`translate(${pan.x},${pan.y}) scale(${zoom})`}>
-      {s.product.dependencies.filter(e=>!s.dependencyFilters.length||s.dependencyFilters.includes(e.dependencyType)).map(e=>{const a=positions[e.sourceComponentId],b=positions[e.targetComponentId];return <path key={e.id} d={`M${a.x},${a.y+19} C${a.x},${a.y+60} ${b.x},${b.y-60} ${b.x},${b.y-20}`} fill="none" stroke={related.has(e.sourceComponentId)&&related.has(e.targetComponentId)?'#759b97':'#36434f'} strokeWidth={s.selectedComponentId&&(e.sourceComponentId===s.selectedComponentId||e.targetComponentId===s.selectedComponentId)?3:1.4} markerEnd="url(#arrow)"><title>{e.description}</title></path>;})}
-      {s.product.components.map(c=>{const p=positions[c.id];const status=s.compareBefore?'healthy':s.activeSimulation?.statuses[c.id]??'healthy';return <g data-node="true" role="button" tabIndex={0} aria-label={`${c.name}, ${status}`} key={c.id} transform={`translate(${p.x},${p.y})`} className={`graph-node ${s.selectedComponentId===c.id?'selected':''}`} opacity={related.has(c.id)?1:.4} onClick={()=>s.select(c.id)} onDoubleClick={()=>{s.focus(c.id);s.setMode('Explore');}} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();s.select(c.id);}}}><rect x={-82} y={-22} width={164} height={44} rx={6}/><text textAnchor="middle" y={-2}>{c.name}</text><text textAnchor="middle" y={13} className={`graph-status ${status}`}>{status.toUpperCase()}</text></g>;})}
-    </g></svg><p className="caption">Drag to pan · Select a node to inspect · Double-click to focus in 3D</p></div>;
+  const s = useWorkspace();
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const drag = useRef<{ x: number; y: number; px: number; py: number } | null>(
+    null,
+  );
+  const graph = useMemo(() => new DependencyGraph(s.product), [s.product]);
+  const related = new Set(
+    s.selectedComponentId
+      ? [
+          s.selectedComponentId,
+          ...graph.getAncestors(s.selectedComponentId),
+          ...graph.getDescendants(s.selectedComponentId),
+        ]
+      : s.product.components.map((c) => c.id),
+  );
+  const positions = Object.fromEntries(
+    s.product.components.map((c, i) => [
+      c.id,
+      { x: 105 + (i % 3) * 215, y: 55 + Math.floor(i / 3) * 96 },
+    ]),
+  );
+  return (
+    <div className="graph-panel">
+      <div className="graph-toolbar">
+        <span>PROVIDER → CONSUMER</span>
+        <button
+          aria-label="Zoom graph out"
+          onClick={() => setZoom((z) => Math.max(0.5, z - 0.2))}
+        >
+          −
+        </button>
+        <button
+          aria-label="Zoom graph in"
+          onClick={() => setZoom((z) => Math.min(2.5, z + 0.2))}
+        >
+          +
+        </button>
+        <button
+          onClick={() => {
+            setPan({ x: 0, y: 0 });
+            setZoom(1);
+          }}
+        >
+          Fit graph
+        </button>
+        <button
+          disabled={!s.selectedComponentId}
+          onClick={() => {
+            const p = positions[s.selectedComponentId!];
+            setPan({ x: 320 - p.x, y: 260 - p.y });
+            setZoom(1);
+          }}
+        >
+          Focus selected
+        </button>
+      </div>
+      <div className="filters">
+        {dependencyTypes
+          .filter((t) =>
+            s.product.dependencies.some((e) => e.dependencyType === t),
+          )
+          .map((type) => (
+            <button
+              key={type}
+              aria-pressed={s.dependencyFilters.includes(type)}
+              onClick={() =>
+                useWorkspace.setState({
+                  dependencyFilters: s.dependencyFilters.includes(type)
+                    ? s.dependencyFilters.filter((t) => t !== type)
+                    : [...s.dependencyFilters, type],
+                })
+              }
+            >
+              {type}
+            </button>
+          ))}
+      </div>
+      <svg
+        viewBox="0 0 650 550"
+        role="group"
+        aria-label="Component dependency graph"
+        onPointerDown={(e) => {
+          if ((e.target as Element).closest("[data-node]")) return;
+          e.currentTarget.setPointerCapture(e.pointerId);
+          drag.current = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y };
+        }}
+        onPointerMove={(e) => {
+          if (drag.current) {
+            const scale = 650 / e.currentTarget.getBoundingClientRect().width;
+            setPan({
+              x: drag.current.px + (e.clientX - drag.current.x) * scale,
+              y: drag.current.py + (e.clientY - drag.current.y) * scale,
+            });
+          }
+        }}
+        onPointerUp={() => {
+          drag.current = null;
+        }}
+        onPointerCancel={() => {
+          drag.current = null;
+        }}
+      >
+        <defs>
+          <marker
+            id="arrow"
+            viewBox="0 0 10 10"
+            refX="9"
+            refY="5"
+            markerWidth="6"
+            markerHeight="6"
+            orient="auto-start-reverse"
+          >
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
+          </marker>
+        </defs>
+        <g transform={`translate(${pan.x},${pan.y}) scale(${zoom})`}>
+          {s.product.dependencies
+            .filter(
+              (e) =>
+                !s.dependencyFilters.length ||
+                s.dependencyFilters.includes(e.dependencyType),
+            )
+            .map((e) => {
+              const a = positions[e.sourceComponentId],
+                b = positions[e.targetComponentId];
+              return (
+                <path
+                  key={e.id}
+                  d={`M${a.x},${a.y + 19} C${a.x},${a.y + 60} ${b.x},${b.y - 60} ${b.x},${b.y - 20}`}
+                  fill="none"
+                  stroke={
+                    related.has(e.sourceComponentId) &&
+                    related.has(e.targetComponentId)
+                      ? "#759b97"
+                      : "#36434f"
+                  }
+                  strokeWidth={
+                    s.selectedComponentId &&
+                    (e.sourceComponentId === s.selectedComponentId ||
+                      e.targetComponentId === s.selectedComponentId)
+                      ? 3
+                      : 1.4
+                  }
+                  markerEnd="url(#arrow)"
+                >
+                  <title>{e.description}</title>
+                </path>
+              );
+            })}
+          {s.product.components.map((c) => {
+            const p = positions[c.id];
+            const status = s.compareBefore
+              ? "healthy"
+              : (s.activeSimulation?.statuses[c.id] ?? "healthy");
+            return (
+              <g
+                data-node="true"
+                role="button"
+                tabIndex={0}
+                aria-label={`${c.name}, ${status}`}
+                key={c.id}
+                transform={`translate(${p.x},${p.y})`}
+                className={`graph-node ${s.selectedComponentId === c.id ? "selected" : ""}`}
+                opacity={related.has(c.id) ? 1 : 0.4}
+                onClick={() => s.select(c.id)}
+                onDoubleClick={() => {
+                  s.focus(c.id);
+                  s.setMode("Explore");
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    s.select(c.id);
+                  }
+                }}
+              >
+                <rect x={-82} y={-22} width={164} height={44} rx={6} />
+                <text textAnchor="middle" y={-2}>
+                  {c.name}
+                </text>
+                <text
+                  textAnchor="middle"
+                  y={13}
+                  className={`graph-status ${status}`}
+                >
+                  {status.toUpperCase()}
+                </text>
+              </g>
+            );
+          })}
+        </g>
+      </svg>
+      <p className="caption">
+        Drag to pan · Select a node to inspect · Double-click to focus in 3D
+      </p>
+    </div>
+  );
 }

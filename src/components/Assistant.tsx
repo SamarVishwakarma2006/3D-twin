@@ -1,9 +1,118 @@
-'use client';
-import { useState } from 'react';
-import { useWorkspace } from '../lib/store';
-import { withLocalFallback, type AssistantAnswer } from '../lib/providers';
-export function Assistant() {
-  const s=useWorkspace();const [input,setInput]=useState('');const [messages,setMessages]=useState<{question:string;answer:AssistantAnswer}[]>([]);const [busy,setBusy]=useState(false);
-  async function ask(question:string){if(!question.trim()||busy)return;setBusy(true);try{const answer=await withLocalFallback(undefined,question,{product:s.product,selectedComponentId:s.selectedComponentId,simulation:s.activeSimulation,mode:s.mode,viewer:{hidden:s.hiddenComponentIds,focused:s.focusedComponentId,isolated:s.isolatedComponentId},repairStep:s.activeRepairStep,compatibilityContext:'No manufacturer compatibility evidence is available.'});setMessages(m=>[...m,{question,answer}].slice(-30));setInput('');}finally{setBusy(false);}}
-  return <div className="assistant"><div className="section-heading"><h3>Ask Inside</h3><span className="badge">LOCAL FALLBACK</span></div><p className="caption">Grounded in the selected component and current simulation. No paid provider required.</p><div className="quick-actions">{['Explain this part','Why does it exist?','Show dependencies','What if I remove it?','How do I repair it?','Find replacement','Explain current simulation'].map(q=><button key={q} disabled={busy} onClick={()=>ask(q)}>{q}</button>)}</div><div className="messages" aria-live="polite">{messages.map((m,i)=><article key={i}><strong>{m.question}</strong><span className="badge">{m.answer.kind}</span><p>{m.answer.text}</p><small>{m.answer.source}</small>{m.answer.actions.map(a=><button key={a.label} onClick={()=>{s.select(a.componentId);if(a.type==='focus')s.focus(a.componentId);if(a.type==='dependencies')s.setMode('Dependencies');if(a.type==='repair')s.setMode('Repair');if(a.type==='simulate')s.simulate(a.componentId);if(a.type==='replacement'){s.setMode('Explore');s.focus(a.componentId);}}}>{a.label}</button>)}</article>)}</div><form onSubmit={e=>{e.preventDefault();void ask(input);}}><label className="sr-only" htmlFor="assistant-question">Ask about this product</label><textarea id="assistant-question" value={input} onChange={e=>setInput(e.target.value)} placeholder="What powers the processor?" maxLength={2000}/><button type="submit" className="primary" disabled={busy||!input.trim()}>{busy?'Preparing answer…':'Ask question ↗'}</button></form></div>;
+"use client";
+import { useState } from "react";
+import { useWorkspace } from "../lib/store";
+import { withLocalFallback, type AssistantAnswer } from "../lib/providers";
+export function Assistant({ onNavigate }: { onNavigate: () => void }) {
+  const s = useWorkspace();
+  const [input, setInput] = useState("");
+  const [messages, setMessages] = useState<
+    { question: string; answer: AssistantAnswer }[]
+  >([]);
+  const [busy, setBusy] = useState(false);
+  async function ask(question: string) {
+    if (!question.trim() || busy) return;
+    setBusy(true);
+    try {
+      const answer = await withLocalFallback(undefined, question, {
+        product: s.product,
+        selectedComponentId: s.selectedComponentId,
+        simulation: s.activeSimulation,
+        mode: s.mode,
+        viewer: {
+          hidden: s.hiddenComponentIds,
+          focused: s.focusedComponentId,
+          isolated: s.isolatedComponentId,
+        },
+        repairStep: s.activeRepairStep,
+        compatibilityContext:
+          "No manufacturer compatibility evidence is available.",
+      });
+      setMessages((m) => [...m, { question, answer }].slice(-30));
+      setInput("");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="assistant">
+      <div className="section-heading">
+        <h3>Ask Inside</h3>
+        <span className="badge">LOCAL FALLBACK</span>
+      </div>
+      <p className="caption">
+        Grounded in the selected component and current simulation. No paid
+        provider required.
+      </p>
+      <div className="quick-actions">
+        {[
+          "Explain this part",
+          "Why does it exist?",
+          "Show dependencies",
+          "Simulate failure",
+          "What if I remove it?",
+          "How do I repair it?",
+          "Find replacement",
+          "Explain current simulation",
+        ].map((q) => (
+          <button key={q} disabled={busy} onClick={() => ask(q)}>
+            {q}
+          </button>
+        ))}
+      </div>
+      <div className="messages" aria-live="polite">
+        {messages.map((m, i) => (
+          <article key={i}>
+            <strong>{m.question}</strong>
+            <span className="badge">{m.answer.kind}</span>
+            <p>{m.answer.text}</p>
+            <small>{m.answer.source}</small>
+            {m.answer.actions.map((a) => (
+              <button
+                key={a.label}
+                onClick={() => {
+                  s.select(a.componentId);
+                  if (a.type === "focus") s.focus(a.componentId);
+                  if (a.type === "dependencies") s.setMode("Dependencies");
+                  if (a.type === "repair") s.setMode("Repair");
+                  if (a.type === "simulate") s.simulate(a.componentId);
+                  if (a.type === "replacement") {
+                    s.setMode("Explore");
+                    s.focus(a.componentId);
+                    useWorkspace.setState({ inspectorTab: "Replacement" });
+                  }
+                  onNavigate();
+                }}
+              >
+                {a.label}
+              </button>
+            ))}
+          </article>
+        ))}
+      </div>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          void ask(input);
+        }}
+      >
+        <label className="sr-only" htmlFor="assistant-question">
+          Ask about this product
+        </label>
+        <textarea
+          id="assistant-question"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="What powers the processor?"
+          maxLength={2000}
+        />
+        <button
+          type="submit"
+          className="primary"
+          disabled={busy || !input.trim()}
+        >
+          {busy ? "Preparing answer…" : "Ask question ↗"}
+        </button>
+      </form>
+    </div>
+  );
 }
