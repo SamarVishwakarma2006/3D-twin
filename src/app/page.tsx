@@ -1,0 +1,1 @@
+export default function Page() { return <main style={{padding:48}}><p>INSIDE / DIGITAL TWIN STUDIO</p><h1>Understand Any Product From the Inside Out.</h1><p>The typed demo dataset and deterministic simulation foundation are ready.</p></main>; }
