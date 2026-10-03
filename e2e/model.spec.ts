@@ -48,7 +48,7 @@ test("imports a mapped GLTF model and preserves a usable fallback for a missing 
     route.fulfill({ status: 404, body: "Not found" }),
   );
   await page.goto("/");
-  await page.getByRole("button", { name: "Try Interactive Demo" }).click();
+  await page.getByRole("button", { name: "Explore the demo" }).click();
   await page.locator(".dataset-tools summary").click();
   const product = {
     ...smartphone,

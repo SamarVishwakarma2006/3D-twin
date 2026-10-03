@@ -1,14 +1,17 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import InsideDeviceHero from "./ui/inside-device-hero";
+
 import Image from "next/image";
-import { Box, ArrowUpRight, Upload, Layers3 } from "lucide-react";
+import { ArrowUpRight, Upload } from "lucide-react";
 import {
   localIdentification,
   type IdentificationInput,
   type Candidate,
 } from "../lib/providers";
 import { validateImage } from "../lib/upload";
+import { smartphone } from "../data/smartphone";
+import { useWorkspace, type Mode } from "../lib/store";
 
 export function Intake({ onOpen }: { onOpen: () => void }) {
   const [name, setName] = useState("");
@@ -22,6 +25,19 @@ export function Intake({ onOpen }: { onOpen: () => void }) {
   const [busy, setBusy] = useState(false);
   const [candidate, setCandidate] = useState<Candidate | null>(null);
   const [stages, setStages] = useState<string[]>([]);
+
+  const [activeSystem, setActiveSystem] = useState("all");
+  const systems = [
+    ["all", "All parts"],
+    ["exterior", "Exterior"],
+    ["power", "Power system"],
+    ["compute", "Compute"],
+    ["camera", "Camera"],
+    ["audio", "Audio"],
+  ];
+  const featuredParts = smartphone.components
+    .filter((part) => activeSystem === "all" || part.systemId === activeSystem)
+    .slice(0, 6);
   useEffect(
     () => () => urls.current.forEach((url) => URL.revokeObjectURL(url)),
     [],
@@ -74,58 +90,33 @@ export function Intake({ onOpen }: { onOpen: () => void }) {
       setBusy(false);
     }
   }
+  function openDemo(mode: Mode = "Explore", componentId?: string) {
+    const state = useWorkspace.getState();
+    if (state.product !== smartphone) state.loadProduct(smartphone);
+    useWorkspace.getState().restore();
+    useWorkspace.getState().setMode(mode);
+    if (componentId) useWorkspace.getState().focus(componentId);
+    else useWorkspace.getState().resetCamera();
+    onOpen();
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
+  function startProduct() {
+    document.getElementById("explore")?.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+    });
+  }
   return (
-    <main className="landing">
-      <header className="landing-header">
-        <Link className="brand" href="/">
-          <Box size={23} />
-          <strong>
-            inside<span> / </span>
-          </strong>
-          <span>Digital Twin Studio</span>
-        </Link>
-        <span className="badge">INTERACTIVE ENGINEERING LAB</span>
-      </header>
-      <div className="landing-grid">
-        <section className="hero">
-          <div className="eyebrow">SEE THE SYSTEM. UNDERSTAND THE PARTS.</div>
-          <h1>
-            Understand Any Product
-            <br />
-            <em>From the Inside Out.</em>
-          </h1>
-          <p>
-            Upload a product image, explore its digital twin, understand every
-            component, simulate failures, and learn how to repair it.
-          </p>
-          <button className="primary demo-button" onClick={onOpen}>
-            Try Interactive Demo <ArrowUpRight size={20} />
-          </button>
-          <div className="hero-proof">
-            <span>15 selectable components</span>
-            <span>Deterministic simulation</span>
-            <span>No API key needed</span>
-          </div>
-          <div className="product-sketch" aria-hidden="true">
-            <div className="sketch-layer back" />
-            <div className="sketch-layer internals">
-              <div className="sketch-board" />
-              <div className="sketch-battery">
-                Li-ion
-                <br />
-                ENERGY MODULE
-              </div>
-            </div>
-            <div className="sketch-layer front">
-              <Layers3 size={32} />
-              <span>DT–01</span>
-            </div>
-            <span className="sketch-label">
-              PROCEDURAL MODEL / EDUCATIONAL DEMO
-            </span>
-          </div>
-        </section>
-        <section className="intake">
+    <main className="landing inside-landing">
+      <InsideDeviceHero
+        onOpenDemo={() => openDemo()}
+        onStartProduct={startProduct}
+        onOpenDependencies={() => openDemo("Dependencies")}
+        onOpenSimulation={() => openDemo("Simulation", "battery")}
+      />
+      <div className="landing-grid inside-product-entry">
+        <section className="intake" id="explore">
           <div className="eyebrow">01 / START AN EXPLORATION</div>
           <h2>Bring a product into view.</h2>
           <p className="muted">
@@ -271,16 +262,132 @@ export function Intake({ onOpen }: { onOpen: () => void }) {
                   <li key={stage}>{stage}</li>
                 ))}
               </ul>
-              <button className="primary wide" onClick={onOpen}>
+              <button className="primary wide" onClick={() => openDemo()}>
                 Use educational demo model →
               </button>
             </div>
           )}
+          <div className="intake-note">
+            <span>✳</span> No setup. No API key. Just curiosity.
+          </div>
         </section>
       </div>
+      <section className="how-section" id="how-it-works">
+        <div className="how-heading">
+          <span className="eyebrow">A CLOSER LOOK AT THE EVERYDAY</span>
+          <p>
+            From outer shell to inner system.
+            <br />
+            <em>All in one place.</em>
+          </p>
+        </div>
+        <div className="how-cards">
+          <article>
+            <span className="card-index">01 — DISCOVER</span>
+            <div className="mini-orbit">
+              <span>01</span>
+              <span>02</span>
+              <span>03</span>
+              <i />
+            </div>
+            <h3>See what’s inside</h3>
+            <p>
+              Move from a product’s outer shell to its individual parts in a
+              living 3D view.
+            </p>
+          </article>
+          <article>
+            <span className="card-index">02 — UNDERSTAND</span>
+            <div className="mini-dependency">
+              <i />
+              <i />
+              <i />
+              <i />
+              <b>↗</b>
+            </div>
+            <h3>Follow every connection</h3>
+            <p>
+              See how parts rely on each other, and what changes when one part
+              fails.
+            </p>
+          </article>
+          <article>
+            <span className="card-index">03 — MAKE IT YOURS</span>
+            <div className="mini-slider">
+              <span>XRAY</span>
+              <i />
+              <span>68%</span>
+            </div>
+            <h3>Explore at your pace</h3>
+            <p>
+              Inspect components, run a simulation, and learn how the system
+              responds.
+            </p>
+          </article>
+        </div>
+        <div className="component-shelf">
+          <div className="component-shelf-heading">
+            <div>
+              <span className="eyebrow">THE SMARTPHONE, UNDER THE SURFACE</span>
+              <h2>Explore the component library.</h2>
+            </div>
+            <p>Choose a system. Open any part in the interactive lab.</p>
+          </div>
+          <div
+            className="component-filters"
+            role="group"
+            aria-label="Filter components by system"
+          >
+            {systems.map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={activeSystem === id}
+                onClick={() => setActiveSystem(id)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="component-grid">
+            {featuredParts.map((part, index) => (
+              <button
+                className="component-card"
+                key={part.id}
+                type="button"
+                onClick={() => {
+                  openDemo("Explore", part.id);
+                }}
+                aria-label={`Explore ${part.name} in the interactive lab`}
+              >
+                <span className={`component-card-art art-${index % 4}`}>
+                  <span
+                    style={
+                      {
+                        backgroundColor: part.geometry.color,
+                        "--part-color": part.geometry.color,
+                      } as CSSProperties
+                    }
+                  />
+                  <small>{part.systemId.toUpperCase()}</small>
+                </span>
+                <span className="component-card-copy">
+                  <strong>{part.name}</strong>
+                  <small>{part.function}</small>
+                </span>
+                <ArrowUpRight className="component-card-arrow" size={15} />
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
       <footer className="landing-footer">
-        EXPLORE / SIMULATE / UNDERSTAND{" "}
-        <span>Demo data is illustrative, not manufacturer-verified.</span>
+        <span>
+          INSIDE <i> / </i> DIGITAL TWIN STUDIO
+        </span>
+        <span>
+          Educational demo · models are illustrative, not manufacturer-verified.
+        </span>
       </footer>
     </main>
   );

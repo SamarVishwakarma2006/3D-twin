@@ -6,7 +6,7 @@ test("demo synchronizes 3D controls, graph, simulation and assistant context", a
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
-  await page.getByRole("button", { name: "Try Interactive Demo" }).click();
+  await page.getByRole("button", { name: "Explore the demo" }).click();
   await expect(page.locator("canvas")).toBeVisible();
   await page.getByRole("button", { name: "Battery", exact: true }).click();
   await expect(page.locator(".inspector h2")).toHaveText("Battery");
@@ -121,7 +121,7 @@ test("command palette, theme and responsive viewport remain usable", async ({
   page,
 }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Try Interactive Demo" }).click();
+  await page.getByRole("button", { name: "Explore the demo" }).click();
   await page.getByRole("button", { name: "Command search" }).click();
   await page.getByLabel("Search commands").fill("Focus Battery");
   await page
